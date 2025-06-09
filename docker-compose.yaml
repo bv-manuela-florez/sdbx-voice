@@ -1,0 +1,14 @@
+services:
+  voices:
+    container_name: voices
+    build: 
+      context: ./prueba-comparar-voz
+      dockerfile: Dockerfile
+    ports:
+      - "5000:80"
+    volumes:
+      - ./prueba-comparar-voz/:/app/
+    env_file:
+      - ./prueba-comparar-voz/.env # Load environment variables from .env file
+    # profiles:
+    #   - donotstart

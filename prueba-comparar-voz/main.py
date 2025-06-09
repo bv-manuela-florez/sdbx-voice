@@ -11,16 +11,10 @@ from pydub import AudioSegment
 from speechbrain.pretrained import SpeakerRecognition
 from azure.storage.blob import BlobServiceClient
 
-app = FastAPI()
-
-# Montar la carpeta estática
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
 # Leer configuración desde variables de entorno
 AZURE_STORAGE_ACCOUNT = os.getenv("AZURE_STORAGE_ACCOUNT")
 AZURE_STORAGE_KEY = os.getenv("AZURE_STORAGE_KEY") 
 AZURE_STORAGE_CONTAINER = os.getenv("AZURE_STORAGE_CONTAINER") 
-
 
 if not AZURE_STORAGE_ACCOUNT or not AZURE_STORAGE_KEY or not AZURE_STORAGE_CONTAINER:
     raise RuntimeError("Faltan variables de entorno de Azure Storage.")
@@ -31,6 +25,12 @@ blob_service = BlobServiceClient(
     credential=AZURE_STORAGE_KEY
 )
 container_client = blob_service.get_container_client(AZURE_STORAGE_CONTAINER)
+
+# Crear la aplicación FastAPI
+app = FastAPI()
+
+# Montar la carpeta estática
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 def convert_to_wav(input_path):
     if input_path.lower().endswith((".wav", ".wave")):
@@ -86,6 +86,11 @@ def compare_blobs(blob_url1, blob_url2, account, key, container):
 async def index():
     return FileResponse("audio_front.html", media_type="text/html")
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @app.post("/upload_audio")
 async def upload_audio(audio: UploadFile = File(...)):
     blob_name = f"{uuid.uuid4()}.wav"
@@ -137,5 +142,3 @@ async def compare(
 @app.get("/favicon.ico")
 async def favicon():
     return FileResponse("static/Picture1.png")
-
-# Para correr: uvicorn main:app --reload
