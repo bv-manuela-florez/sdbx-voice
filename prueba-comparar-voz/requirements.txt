@@ -1,0 +1,12 @@
+fastapi
+gunicorn
+speechbrain
+soundfile
+torch
+uvicorn
+python-multipart
+azure-storage-blob
+pyaudio
+pydub
+torchaudio
+ffmpeg-python

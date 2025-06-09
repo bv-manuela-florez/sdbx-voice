@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Comparar Voz</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- Añadido para responsive -->
+    <!-- Agrega estilos para el botón -->
+    <style>
+        body {
+            background: linear-gradient(120deg, #e8f6ef 0%, #d4efdf 100%);
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            margin: 0;
+            min-height: 100vh;
+        }
+        .voice-compare-container {
+            margin: 32px auto;
+            max-width: 480px;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(20,90,50,0.10);
+            padding: 32px 24px 28px 24px;
+        }
+        h2 {
+            color: #145a32;
+            font-size: 1.35rem;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+        label {
+            font-weight: 600;
+            color: #229954;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .voice-record-btn {
+            padding: 10px 22px;
+            font-size: 1.08rem;
+            border-radius: 22px;
+            background: linear-gradient(90deg, #27ae60 60%, #43ea7f 100%);
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(39, 174, 96, 0.13);
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: visible;
+        }
+        .voice-record-btn:hover {
+            background: linear-gradient(90deg, #229954 60%, #43ea7f 100%);
+            transform: scale(1.045);
+            box-shadow: 0 4px 18px rgba(39, 174, 96, 0.18);
+        }
+        .voice-record-btn.recording {
+            background: linear-gradient(90deg, #43ea7f 60%, #27ae60 100%);
+            color: #fff;
+            box-shadow: 0 0 0 0 rgba(67,234,127,0.7);
+            animation: pulse-shadow-green 1s infinite;
+        }
+        @keyframes pulse-shadow-green {
+            0% {
+                box-shadow: 0 0 0 0 rgba(67,234,127,0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 16px rgba(67,234,127,0.0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(67,234,127,0.0);
+            }
+        }
+        #compareVoicesBtn {
+            margin-top: 18px;
+            padding: 12px 28px;
+            border-radius: 22px;
+            background: linear-gradient(90deg,#27ae60 60%,#43ea7f 100%);
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            font-size: 1.08rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(39, 174, 96, 0.10);
+            transition: background 0.2s, transform 0.15s;
+        }
+        #compareVoicesBtn:hover {
+            background: linear-gradient(90deg,#229954 60%,#43ea7f 100%);
+            transform: scale(1.035);
+        }
+        #compareResult {
+            margin-top: 18px;
+            font-size: 1.12rem;
+            font-weight: 600;
+            color: #229954;
+            min-height: 32px;
+        }
+        audio {
+            margin-top: 8px;
+            width: 100%;
+            outline: none;
+            border-radius: 8px;
+            background: #e8f6ef;
+        }
+        @media (max-width: 600px) {
+            .voice-compare-container {
+                padding: 12px 2vw 12px 2vw;
+                max-width: 98vw;
+            }
+            h2 {
+                font-size: 1rem;
+                margin-bottom: 6px;
+            }
+            .voice-record-btn, #compareVoicesBtn {
+                font-size: 0.95rem;
+                padding: 10px 8px;
+                min-width: 0;
+            }
+            label {
+                font-size: 0.98rem;
+            }
+            #compareResult {
+                font-size: 1rem;
+                min-height: 24px;
+            }
+            audio {
+                width: 100%;
+                min-width: 0;
+            }
+            .voice-compare-container > div,
+            .voice-compare-container > h2 {
+                word-break: break-word;
+            }
+        }
+        @media (max-width: 400px) {
+            .voice-compare-container {
+                padding: 6px 1vw 6px 1vw;
+            }
+            h2 {
+                font-size: 0.92rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="voice-compare-container">
+        <h2>Comparar dos voces v3</h2>
+        <div>Graba dos audios y verifica si son la misma voz.</div>
+        <div style="display:flex; flex-direction:column; gap:18px;">
+            <div>
+                <label>Voz 1:</label>
+                <button id="recordBtn1" class="voice-record-btn"><i class="fa-solid fa-microphone"></i> Grabar Voz 1</button>
+                <audio id="audio1" controls style="display:none; margin-top:8px;"></audio>
+            </div>
+            <div>
+                <label>Voz 2:</label>
+                <button id="recordBtn2" class="voice-record-btn"><i class="fa-solid fa-microphone"></i> Grabar Voz 2</button>
+                <audio id="audio2" controls style="display:none; margin-top:8px;"></audio>
+            </div>
+        </div>
+        <button id="compareVoicesBtn">Comparar Voces</button>
+        <div id="compareResult"></div>
+    </div>
+    <script>
+        // Estado para cada grabación
+        let recorders = [
+            { mediaRecorder: null, audioChunks: [], blob: null, url: null, isRecording: false, stream: null },
+            { mediaRecorder: null, audioChunks: [], blob: null, url: null, isRecording: false, stream: null }
+        ];
+
+        // Botones y audios
+        const recordBtns = [
+            document.getElementById('recordBtn1'),
+            document.getElementById('recordBtn2')
+        ];
+        const audioEls = [
+            document.getElementById('audio1'),
+            document.getElementById('audio2')
+        ];
+        const compareBtn = document.getElementById('compareVoicesBtn');
+        const resultDiv = document.getElementById('compareResult');
+
+        // Toggle de grabación para cada botón
+        async function toggleRecording(idx) {
+            if (!recorders[idx].isRecording) {
+                // Iniciar grabación
+                recordBtns[idx].disabled = true;
+                recordBtns[idx].innerHTML = '<i class="fa-solid fa-microphone"></i> Grabando...';
+                recordBtns[idx].className = 'voice-record-btn recording';
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const mediaRecorder = new MediaRecorder(stream);
+                    recorders[idx].mediaRecorder = mediaRecorder;
+                    recorders[idx].audioChunks = [];
+                    recorders[idx].isRecording = true;
+                    recorders[idx].stream = stream;
+                    mediaRecorder.start();
+                    mediaRecorder.ondataavailable = e => recorders[idx].audioChunks.push(e.data);
+                    mediaRecorder.onstop = () => {
+                        recorders[idx].blob = new Blob(recorders[idx].audioChunks, { type: 'audio/webm' });
+                        const url = URL.createObjectURL(recorders[idx].blob);
+                        recorders[idx].url = url;
+                        audioEls[idx].src = url;
+                        audioEls[idx].style.display = 'block';
+                        recordBtns[idx].innerHTML = `<i class="fa-solid fa-microphone"></i> Regrabar Voz ${idx+1}`;
+                        recordBtns[idx].disabled = false;
+                        recordBtns[idx].className = 'voice-record-btn';
+                        recorders[idx].isRecording = false;
+                        if (recorders[idx].stream) {
+                            recorders[idx].stream.getTracks().forEach(track => track.stop());
+                            recorders[idx].stream = null;
+                        }
+                    };
+                    recordBtns[idx].innerHTML = '<i class="fa-solid fa-microphone"></i> Grabando...';
+                    recordBtns[idx].disabled = false;
+                } catch (err) {
+                    alert('No se pudo acceder al micrófono.');
+                    recordBtns[idx].disabled = false;
+                    recordBtns[idx].innerHTML = `<i class="fa-solid fa-microphone"></i> Grabar Voz ${idx+1}`;
+                    recordBtns[idx].className = 'voice-record-btn';
+                }
+            } else {
+                // Detener grabación
+                if (recorders[idx].mediaRecorder && recorders[idx].mediaRecorder.state === 'recording') {
+                    recorders[idx].mediaRecorder.stop();
+                }
+            }
+        }
+
+        // Asignar eventos a los botones de grabar
+        recordBtns[0].onclick = () => toggleRecording(0);
+        recordBtns[1].onclick = () => toggleRecording(1);
+
+        // Subir ambos audios y comparar
+        compareBtn.onclick = async () => {
+            resultDiv.innerText = '';
+            // Validar que ambas grabaciones existen
+            if (!recorders[0].blob || !recorders[1].blob) {
+                resultDiv.innerText = 'Por favor graba ambas voces antes de comparar.';
+                return;
+            }
+            compareBtn.disabled = true;
+            compareBtn.innerText = 'Comparando...';
+
+            try {
+                // Subir ambas grabaciones
+                const urls = [];
+                for (let i = 0; i < 2; i++) {
+                    const formData = new FormData();
+                    formData.append('audio', recorders[i].blob, `voz${i+1}.webm`);
+                    const resp = await fetch('/upload_audio', { method: 'POST', body: formData });
+                    const data = await resp.json();
+                    if (!data.blob_url) throw new Error('Error al subir audio');
+                    urls.push(data.blob_url);
+                }
+                // Llamar endpoint de comparación
+                const resp = await fetch('/compare', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ blob_url1: urls[0], blob_url2: urls[1] })
+                });
+                const data = await resp.json();
+                if (data && typeof data.score !== 'undefined') {
+                    resultDiv.innerHTML = `Mismo hablante: <b>${data.same_speaker ? 'Sí' : 'No'}</b>`;
+                } else {
+                    resultDiv.innerText = 'No se pudo comparar las voces.';
+                }
+            } catch (e) {
+                resultDiv.innerText = 'Error al comparar voces.';
+            }
+            compareBtn.disabled = false;
+            compareBtn.innerText = 'Comparar Voces';
+        };
+    </script>
+</body>
+</html>
